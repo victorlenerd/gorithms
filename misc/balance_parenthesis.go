@@ -1,4 +1,4 @@
-package main
+package misc
 
 func balancedParenthesis(parenthesis []string) bool {
 	stack := Stack{}

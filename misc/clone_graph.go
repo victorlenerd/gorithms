@@ -1,4 +1,4 @@
-package main
+package misc
 
 type UndirectedGraphNode struct {
 	Label     int

@@ -3,7 +3,7 @@
 	Author: Victor Nwaokocha
 */
 
-package main
+package misc
 
 func generateParenthesis(n int) []string {
 	results := []string{}

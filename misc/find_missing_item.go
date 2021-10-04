@@ -1,4 +1,4 @@
-package main
+package misc
 
 func FindMissingItem(a []int, b []int) []int {
 	var missing []int
