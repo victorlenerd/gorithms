@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 /**
 
@@ -34,42 +37,99 @@ pointer and pay the cost of insertion.
 
 const (
 	MATCH  = 0
-	INSERT = 1
-	DELETE = 2
+	SUB    = 1
+	INSERT = 2
+	DELETE = 3
 )
+
+type Cell struct {
+	Operation int
+	Cost      int
+}
 
 /*
 	The cells in the matrix contains cost of the optimal solution to a sub problem, as well as
 	parent pointer explaining how we got to this location.
 */
-func createRecurrentRelationMatrix(m int, n int) [][]int {
-	matrix := make([][]int, m + 1)
-	for i:=0; i<m + 1; i++ {
-		matrix[uint8(i)] = make([]int, n + 1)
+func createRecurrentRelationMatrix(m int, n int) [][]Cell {
+	matrix := make([][]Cell, m+1)
+	for i := 0; i < m+1; i++ {
+		matrix[uint8(i)] = make([]Cell, n+1)
 	}
 	return matrix
 }
 
-func printRecurrentRelationMatrix(matrix [][]int)  {
+func printRecurrentRelationMatrix(matrix [][]Cell) {
 	fmt.Println("---------------MATRIX------------------------")
-	for i:=0; i<len(matrix); i++ {
+	for i := 0; i < len(matrix); i++ {
 		fmt.Println(matrix[i])
 	}
 	fmt.Println("---------------------------------------------")
 }
 
-func findMin(x int, y int, z int) int {
-	min := x
+func findMin(isMatch bool, match int, substitution int, insertion int, deletion int) (int, int) {
+	min := math.MaxInt8
+	var operation int
 
-	if y < min {
-		min = y
+	if isMatch {
+		min = match
+		operation = MATCH
+	} else {
+		min = substitution
+		operation = SUB
 	}
 
-	if z < min {
-		min = z
+	if insertion < min {
+		min = insertion
+		operation = INSERT
 	}
 
-	return min
+	if deletion < min {
+		min = deletion
+		operation = DELETE
+	}
+
+	return min, operation
+}
+
+func printOperations(matrix [][]Cell, i int, j int)  {
+
+	queue := []int{
+		matrix[i][j].Operation,
+	}
+
+	for len(queue) > 0 {
+		top := queue[0]
+
+		if top == MATCH {
+			fmt.Print("M ->")
+			queue = append(queue, matrix[i-1][j-1].Operation)
+			i -= 1
+			j -= 1
+		}
+
+		if top == SUB {
+			fmt.Print("S ->")
+			queue = append(queue, matrix[i-1][j-1].Operation)
+			i -= 1
+			j -= 1
+		}
+
+		if top == INSERT {
+			fmt.Print("I ->")
+			queue = append(queue, matrix[i][j-1].Operation)
+			j -= 1
+		}
+
+		if top == DELETE {
+			fmt.Print("D ->")
+			queue = append(queue, matrix[i-1][j].Operation)
+			i -= 1
+		}
+
+		queue = queue[1:]
+	}
+
 }
 
 /*
@@ -86,48 +146,59 @@ func findMin(x int, y int, z int) int {
 */
 
 func main() {
+	ptr := "vik"
 	str := "victor"
-	ptr := "viktor"
 
 	m := len(str)
 	n := len(ptr)
 
 	costMatrix := createRecurrentRelationMatrix(m, n)
 
+	costMatrix[0][0] = Cell{
+		Cost:      0,
+		Operation: -1,
+	}
+
 	// Base Case: Giving an empty string and a pattern of i'th length the edit cost is i insertion
-	for i := 1; i < m + 1; i++ {
-		costMatrix[i][0] = i
+	for i := 1; i < m+1; i++ {
+		costMatrix[i][0] = Cell{
+			Cost:      i,
+			Operation: INSERT,
+		}
 	}
 
-	// Base Case: Giving an empty pattern and a string of i'th length the edit cost is i insertion
-	for i := 1; i < n + 1; i++ {
-		costMatrix[0][i] = i
+	// Base Case: Giving an empty pattern and a string of i'th length the edit cost is i deletion
+	for i := 1; i < n+1; i++ {
+		costMatrix[0][i] = Cell{
+			Cost:      i,
+			Operation: DELETE,
+		}
 	}
-
-	printRecurrentRelationMatrix(costMatrix)
 
 	for i := 1; i <= m; i++ {
 		for j := 1; j <= n; j++ {
-			strChar := string(str[i - 1])
-			ptrChar := string(ptr[j - 1])
+			strChar := string(str[i-1])
+			ptrChar := string(ptr[j-1])
 
-			// assume string and pattern char is a match then there's no substitution cost
-			substitutionCost := costMatrix[i - 1][j - 1]
+			min, operation := findMin(
+				strChar == ptrChar,
+				costMatrix[i-1][j-1].Cost,   // Cost or a match
+				costMatrix[i-1][j-1].Cost+1, // Cost of a substitution
+				costMatrix[i][j-1].Cost+1,   // Cost of an insertion
+				costMatrix[i-1][j].Cost+1,   // Cost of a deletion
+			)
 
-			// if string and pattern char do not match then substitution cost is factored
-			if strChar != ptrChar {
-				substitutionCost = costMatrix[i-1][j-1] + 1
+			cell := Cell{
+				Cost:      min,
+				Operation: operation,
 			}
 
-			costMatrix[i][j] = findMin(
-				substitutionCost, // Cost of substitution
-				costMatrix[i][j-1] + 1, // Cost of deletion
-				costMatrix[i-1][j] + 1, // Cost of insertion
-			)
+			costMatrix[i][j] = cell
 		}
 	}
 
 	printRecurrentRelationMatrix(costMatrix)
 
 	fmt.Println("Edit Cost", costMatrix[m][n])
+	printOperations(costMatrix, m, n)
 }
