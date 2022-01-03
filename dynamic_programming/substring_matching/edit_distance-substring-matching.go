@@ -4,36 +4,6 @@ import (
 	"fmt"
 )
 
-/**
-
-To deal with in exact string matching we must first define a cost function telling us how far apart
-two strings are i.e a distance measure between two pairs of strings.
-
-The reasonable distance measure reflects the number of changes that must be made to convert one string to another.
-There are three natural types of changes:
-
-1. Substitution
-2. Insertion
-3. Deletions
-
-Let i and j be the last character of the relevant prefix of P and T, respectively. There are three pair of shorter
-strings after the last operation, corresponding to the strings after a match/substitution, insertion and deletion.
-
-If we know the cost of editing these three pair of smaller strings, we could decide which option is best.
-
-Let D[i, j] be the minimum number of differences between P1, P2,...Pi and the segment of T ending at j.
-D[i, J] is the minimum of these options:
-
-1. If (Pi == Tj), then D[i-1, j-1], else D[i-1, j-1] + 1. The means we either match or substitute the ith and jth
-characters, depending upon whether the tail characters are the same.
-
-2. D[i, j-1] + 1. This means that there is an extra character in the pattern to account for, so we do not advance the
-next pointer and pay the cost of a deletion.
-
-3. D[i - 1, j] + 1. This is means that there is an extra character in the text to remove, so we do not advance the pattern
-pointer and pay the cost of insertion.
-*/
-
 const (
 	MATCH  = 0
 	INSERT = 1
@@ -45,10 +15,6 @@ type Cell struct {
 	Cost      int
 }
 
-/*
-	The cells in the matrix contains cost of the optimal solution to a sub problem, as well as
-	parent pointer explaining how we got to this location.
-*/
 func createRecurrentRelationMatrix(x int, y int) [][]Cell {
 	matrix := make([][]Cell, x+1)
 	for i := 0; i <= x; i++ {
@@ -65,8 +31,19 @@ func printRecurrentRelationMatrix(matrix [][]Cell) {
 	fmt.Println("---------------------------------------------")
 }
 
-func goalCell(str string, text string) (i int, j int) {
-	return len(str), len(text)
+func goalCell(costMatrix [][]Cell,str string, text string) (i int, j int) {
+	var k int
+
+	i = len(str)
+	j = 0
+
+	for k=1; k<len(text); k++ {
+		if costMatrix[i][k].Cost < costMatrix[i][j].Cost {
+			j = k
+		}
+	}
+
+	return i, j
 }
 
 func match(c string, d string) int {
@@ -77,18 +54,18 @@ func match(c string, d string) int {
 	return  1
 }
 
-func inDel(c string) int {
+
+func insert() int {
 	return 1
 }
 
-func rowInt(i int, costMatrix *[][]Cell) {
-	(*costMatrix)[0][i].Cost = i
+func del() int {
+	return 1
+}
 
-	if i > 0 {
-		(*costMatrix)[0][i].Operation = INSERT
-	} else {
-		(*costMatrix)[0][i].Operation = -1
-	}
+func rowInt(j int, costMatrix *[][]Cell) {
+	(*costMatrix)[0][j].Cost = 0
+	(*costMatrix)[0][j].Operation = -1
 }
 
 func columnInt(i int, costMatrix *[][]Cell) {
@@ -160,13 +137,15 @@ func reconstructPath(costMatrix [][]Cell, str string, text string, i int, j int)
 */
 
 func main() {
-	str := "you should not"
-	text := "thou shalt not"
+	str := "vic"
+	text := "sstorpu3ddjdjd"
 
 	x := len(str)
 	y := len(text)
 
 	costMatrix := createRecurrentRelationMatrix(x, y)
+
+	printRecurrentRelationMatrix(costMatrix)
 
 	for i := 0; i <= y; i++ {
 		rowInt(i, &costMatrix)
@@ -176,17 +155,19 @@ func main() {
 		columnInt(i, &costMatrix)
 	}
 
+	printRecurrentRelationMatrix(costMatrix)
+
 	opt := make([]int, 3, 3)
 
 	for i := 1; i <= x; i++ {
 		for j := 1; j <= y; j++ {
 
-			strChar := string(str[i-1])
 			textChar := string(text[j-1])
+			strChar := string(str[i-1])
 
 			opt[MATCH] = costMatrix[i-1][j-1].Cost + match(strChar, textChar)
-			opt[INSERT] = costMatrix[i][j-1].Cost + inDel(textChar)
-			opt[DELETE] = costMatrix[i-1][j].Cost + inDel(strChar)
+			opt[INSERT] = costMatrix[i][j-1].Cost + insert()
+			opt[DELETE] = costMatrix[i-1][j].Cost + del()
 
 			costMatrix[i][j].Cost = opt[MATCH]
 			costMatrix[i][j].Operation = MATCH
@@ -201,9 +182,10 @@ func main() {
 	}
 
 	printRecurrentRelationMatrix(costMatrix)
-	i, j := goalCell(str, text)
+	i, j := goalCell(costMatrix, str, text)
 
+	fmt.Println("<i: ", i,"> <j: ",j,">")
 	fmt.Println("Edit Cost = ", costMatrix[i][j].Cost)
 
-	reconstructPath(costMatrix, str, text, x, y)
+	reconstructPath(costMatrix, str, text, i, j)
 }
