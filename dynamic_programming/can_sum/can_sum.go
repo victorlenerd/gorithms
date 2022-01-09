@@ -20,7 +20,7 @@ func makeRecurrentRelationArr(size int) []bool {
 	return res
 }
 
-func main()  {
+func main() {
 	target := 8
 	arr := []int{2, 3, 5}
 
